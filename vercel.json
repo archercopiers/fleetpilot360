@@ -1,4 +1,13 @@
 {
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/leads.js": { "maxDuration": 60 },
+    "api/lead-notifications.js": { "maxDuration": 60 }
+  },
+  "headers": [
+    { "source": "/api/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
+  ]
 }
