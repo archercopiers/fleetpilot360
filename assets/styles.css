@@ -13,3 +13,10 @@
 #quote-form button:disabled{opacity:.65;cursor:wait}
 #quote-form[aria-busy="true"] input,#quote-form[aria-busy="true"] textarea{opacity:.8}
 #quote-security{min-height:65px}
+/* FleetPilot360 overview film */
+.fleet-film{padding:64px 0;background:#f3f6fa}
+.film-heading{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:24px}
+.film-heading h2{margin:0;font-size:clamp(26px,3vw,38px);line-height:1.15;color:#07152b}
+#fleet-film-player{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:#07152b;border-radius:18px;box-shadow:0 18px 48px #07152b20}
+.fleet-film .fine-print{margin-top:16px;color:#526075}
+@media(max-width:640px){.fleet-film{padding:40px 0}.film-heading{align-items:flex-start;flex-direction:column;gap:18px}#fleet-film-player{aspect-ratio:1/1}}
