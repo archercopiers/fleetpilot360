@@ -1,3 +1,4 @@
+import { trackerProducts } from './tracker-products.mjs';
 import { mkdir, writeFile } from 'node:fs/promises';
 
 const origin = 'https://www.fleetpilot360.com';
@@ -68,7 +69,7 @@ export async function buildSearchPages() {
   const blocks=rows=>rows.map(([heading,copy])=>`<section><h2>${heading}</h2><p>${copy}</p></section>`).join('');
   const interests=['GPS tracking','AI dash cams','ELD compliance','Complete fleet platform'];
   for(const [i,[slug,name,heading,desc,sections]] of solutions.entries()){
-    const visual=slug==='ai-dash-cams'?'<figure><img src="/assets/ad-plus-concept.webp" alt="Illustration of the AD Plus 2.0 dash camera and windshield mount" width="840" height="820"><figcaption>AD Plus 2.0 · Product illustration</figcaption></figure>':'';
+    const visual=slug==='gps-tracking'?trackerProducts:slug==='ai-dash-cams'?'<figure><img src="/assets/ad-plus-concept.webp" alt="Illustration of the AD Plus 2.0 dash camera and windshield mount" width="840" height="820"><figcaption>AD Plus 2.0 · Product illustration</figcaption></figure>':'';
     await page('/solutions/'+slug,name+' for South Texas fleets',name+' for fleets',desc,visual+'<h2>'+heading+'</h2>'+blocks(sections),'Solutions',slug==='ai-dash-cams'?'Get dash cam pricing':'Request fleet pricing',interests[i]);
   }
   for(const [slug,name,heading,desc,sections] of cities) await page('/service-areas/'+slug,'Fleet GPS and dash cameras in '+name+', TX','Fleet solutions in '+name+', Texas',desc,'<h2>'+heading+'</h2>'+blocks(sections),'Service areas','Ask about sales and service');

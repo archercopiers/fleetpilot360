@@ -5,3 +5,13 @@ const interestField = document.querySelector('#quote-form select[name="interest"
 if (interestField && Array.from(interestField.options).some(option => option.value === requestedInterest)) {
   interestField.value = requestedInterest;
 }
+
+const trackerNames = new Map([
+  ['small-equipment', 'Small Equipment GPS Tracker'],
+  ['obd-ii', 'Plug-In OBD-II GPS Tracker']
+]);
+const trackerName = trackerNames.get(new URLSearchParams(location.search).get('tracker'));
+const quoteMessage = document.querySelector('#quote-form textarea[name="message"]');
+if (trackerName && quoteMessage && !quoteMessage.value) {
+  quoteMessage.value = 'Please send me pricing for the ' + trackerName + '.';
+}

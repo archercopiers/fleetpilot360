@@ -1,3 +1,4 @@
+import { trackerProducts } from './tracker-products.mjs';
 import { buildSearchPages, homeSearchHead } from './search-pages.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { cp, mkdir, rm } from 'node:fs/promises';
@@ -8,4 +9,4 @@ console.log('Static public files prepared; server files and secrets excluded.');
 
 await buildSearchPages();
 const home = await readFile('dist/index.html','utf8');
-await writeFile('dist/index.html',home.replace('</head>',homeSearchHead+'</head>'));
+await writeFile('dist/index.html',home.replace('<!-- tracker-products -->', trackerProducts).replace('</head>',homeSearchHead+'</head>'));
