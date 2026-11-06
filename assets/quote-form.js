@@ -3,29 +3,9 @@ const status = form.querySelector('.form-status');
 const button = form.querySelector('button[type=submit]');
 const consent = form.elements.measurementConsent;
 let config, widget, token = '', busy = false, finished = false;
-let requestKey = crypto.randomUUID(), lastPayload = null, analyticsStarted = false;
-const emitted = new Set();
+let requestKey = crypto.randomUUID(), lastPayload = null;
 function report(message, state = '') { status.textContent = message; status.dataset.state = state; }
 function updateButton() { button.disabled = busy || finished || !config?.enabled || !token; }
-function gtag() { window.dataLayer ||= []; window.dataLayer.push(arguments); }
-function measurement() {
-  if (!config?.ads) return;
-  if (consent.checked && !analyticsStarted) {
-    analyticsStarted = true;
-    // Basic consent: do not load Google's tag until the visitor opts in.
-    gtag('consent','default',{ad_storage:'denied',analytics_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});
-    gtag('consent','update',{ad_storage:'granted',analytics_storage:'granted',ad_user_data:'denied',ad_personalization:'denied'});
-    gtag('js',new Date());
-    gtag('config',config.ads.id,{send_page_view:false,allow_ad_personalization_signals:false});
-    const script = document.createElement('script');
-    script.async = true; script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(config.ads.id)}`;
-    document.head.append(script);
-  } else if (analyticsStarted) {
-    gtag('consent','update',{ad_storage:consent.checked?'granted':'denied',analytics_storage:consent.checked?'granted':'denied',
-      ad_user_data:'denied',ad_personalization:'denied'});
-  }
-}
-consent.addEventListener('change',measurement);
 function attribution() {
   if (!consent.checked) return {};
   const query = new URLSearchParams(location.search), result = {};
@@ -67,8 +47,8 @@ async function init() {
     script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=fleetpilotTurnstileReady&render=explicit';
     script.onerror = () => report('Security check unavailable. Please reload or call 956-440-9800.','error');
     document.head.append(script);
-    report('Please complete the security check.'); measurement();
-  } catch { report('Online requests are temporarily unavailable. Please call 956-440-9800 or use the email link beside this form.','error'); }
+    report('Please complete the security check.');
+  } catch { report('Online requests are temporarily unavailable. Please call 956-440-9800.','error'); }
 }
 form.addEventListener('submit',async event => {
   event.preventDefault();
@@ -97,9 +77,9 @@ form.addEventListener('submit',async event => {
     report(`Request received. Thank you! Our team will follow up.\nYour reference: ${result.lead_id}`,'success');
     button.textContent = 'Request received ✓';
     status.focus();
-    if (payload.measurementConsent && config.ads && !emitted.has(result.lead_id)) {
-      emitted.add(result.lead_id);
-      gtag('event','conversion',{send_to:`${config.ads.id}/${config.ads.label}`,transaction_id:result.lead_id});
+    // Measurement failure must never turn an accepted lead into a form error.
+    if (payload.measurementConsent) {
+      try { window.fleetpilotMeasurement?.conversion(result.lead_id); } catch {}
     }
   } catch (error) {
     const message = error.name === 'TimeoutError' || error.name === 'TypeError'

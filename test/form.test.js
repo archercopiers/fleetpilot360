@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
 const html = await readFile(new URL('../index.html',import.meta.url),'utf8');
 const source = await readFile(new URL('../assets/quote-form.js',import.meta.url),'utf8');
+const measurement = await readFile(new URL('../assets/measurement.js',import.meta.url),'utf8');
 const tick = () => new Promise(resolve => setTimeout(resolve,0));
 async function setup({enabled=true,ads=true,responses=[]} = {}) {
   const dom = new JSDOM(html,{url:'https://www.fleetpilot360.com/?gclid=fixture&utm_source=google',runScripts:'outside-only'});
@@ -17,7 +18,7 @@ async function setup({enabled=true,ads=true,responses=[]} = {}) {
     if(next instanceof Error) throw next;
     return {ok:next?.ok??true,json:async()=>next?.body??{status:'received',lead_id:'33bcae6e-8598-44fc-bffd-28470ce27b70'}};
   };
-  w.eval(source);await tick();
+  w.eval(measurement);await tick();w.eval(source);await tick();
   if(enabled){w.fleetpilotTurnstileReady();challenge.callback('challenge-token');}
   const f=w.document.querySelector('#quote-form');
   for(const [key,value] of Object.entries({name:'Test',company:'QA Fleet',phone:'9565550100',message:'Test only'}))f.elements[key].value=value;
@@ -29,7 +30,7 @@ test('success appears only after receipt and opted-out request never loads Googl
     await s.submit();assert.equal(s.calls.length,1);
     assert.equal(s.w.document.querySelector('.form-status').dataset.state,'success');
     assert.equal(s.w.document.querySelector('script[src*="googletagmanager"]'),null);
-    assert.equal(s.w.dataLayer,undefined);
+    assert.equal(s.w.dataLayer.filter(e=>e[0]==='event').length,0);
     const body=JSON.parse(s.calls[0].body);assert.deepEqual(body.attribution,{});assert.equal(body.measurementConsent,false);
     await s.submit();assert.equal(s.calls.length,1);
   }finally{s.dom.window.close();}
@@ -56,7 +57,7 @@ test('one conversion is emitted after accepted receipt, never for a rejected req
     s.challenge();await s.submit();await s.submit();
     const events=s.w.dataLayer.filter(e=>e[0]==='event');assert.equal(events.length,1);
     assert.equal(events[0][2].transaction_id,'33bcae6e-8598-44fc-bffd-28470ce27b70');
-    assert.equal(events[0][2].send_to,'AW-123456789/fixture');
+    assert.equal(events[0][2].send_to,'AW-447615950/gSw_CNjmrrIdEM6nuNUB');
     s.f.elements.measurementConsent.checked=false;s.f.elements.measurementConsent.dispatchEvent(new s.w.Event('change'));
     assert.equal(s.w.dataLayer.at(-1)[2].ad_storage,'denied');
   }finally{s.dom.window.close();}
@@ -66,4 +67,22 @@ test('missing launch configuration disables submission with a working phone alte
     await s.submit();assert.equal(s.calls.length,0);assert.equal(s.f.querySelector('button').disabled,true);
     assert.match(s.w.document.querySelector('.form-status').textContent,/956-440-9800/);
   }finally{s.dom.window.close();}
+});
+test('measurement exception does not change accepted receipt into failure',async()=>{
+ const s=await setup();try{
+  s.f.elements.measurementConsent.checked=true;s.f.elements.measurementConsent.dispatchEvent(new s.w.Event('change'));
+  s.w.fleetpilotMeasurement.conversion=()=>{throw Error('blocked tracker');};
+  await s.submit();assert.equal(s.w.document.querySelector('.form-status').dataset.state,'success');
+  await s.submit();assert.equal(s.calls.length,1);
+ }finally{s.dom.window.close();}
+});
+test('in-flight duplicate submit sends one request and revoked consent emits no conversion',async()=>{
+ const s=await setup();try{
+  s.w.fleetpilotMeasurement.choose(true);
+  let resolve;const original=s.w.fetch;s.w.fetch=(url,opts)=>url==='/api/leads'?new Promise(r=>{resolve=()=>original(url,opts).then(r);}):original(url,opts);
+  const event=()=>s.f.dispatchEvent(new s.w.Event('submit',{bubbles:true,cancelable:true}));
+  event();event();s.w.fleetpilotMeasurement.choose(false);resolve();await tick();await tick();
+  assert.equal(s.calls.length,1);assert.equal(s.w.document.querySelector('.form-status').dataset.state,'success');
+  assert.equal(s.w.dataLayer.filter(e=>e[0]==='event').length,0);
+ }finally{s.dom.window.close();}
 });
